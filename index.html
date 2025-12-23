@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Buckshot Roulette (Web)</title>
+  <title>Buckshot Roulette (Web Mosaic)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -11,17 +11,17 @@
     <canvas id="game" width="1280" height="720"></canvas>
     <div id="overlay">
       <div id="help">
-        Click Player or Dealer to choose target on your turn.
-        <br>Lower depth is drawn in front. Damage = 1 + stack on live, stack resets.
-        <br>Stack increases by 1 when a blank is fired at self.
+        Click Player or Dealer to choose target on your turn. Uses your BMP assets + mosaic.
       </div>
       <button id="btnRestart" class="hidden">Play Again</button>
     </div>
   </div>
 
-  <script type="module" src="js/utils.js"></script>
-  <script type="module" src="js/engine.js"></script>
-  <script type="module" src="js/game.js"></script>
-  <script type="module" src="js/main.js"></script>
+  <script src="js/utils.js" type="module"></script>
+  <script src="js/engine.js" type="module"></script>
+  <script src="js/bmp.js" type="module"></script>
+  <script src="js/mosaic.js" type="module"></script>
+  <script src="js/game.js" type="module"></script>
+  <script src="js/main.js" type="module"></script>
 </body>
 </html>
