@@ -10,7 +10,6 @@ function getCenteredXY(evt) {
   const rect = canvas.getBoundingClientRect();
   const sx = (evt.clientX - rect.left);
   const sy = (evt.clientY - rect.top);
-  // Convert to world coords: x centered, y up
   const x = sx - canvas.width/2;
   const y = (canvas.height/2) - sy;
   return {x,y};
@@ -44,7 +43,6 @@ async function loop() {
       continue;
     }
     if (game.state.turn === 'player') {
-      // prepare click promise
       const clickPromise = new Promise(res => clickResolver = res);
       await game.player_turn(clickPromise);
     } else {
