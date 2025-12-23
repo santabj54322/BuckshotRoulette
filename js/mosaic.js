@@ -1,5 +1,5 @@
 import { Node } from './engine.js';
-import { loadBMP } from './bmp.js';
+import { loadBMP } from './bmp.js'; 
 
 class MosaicNode extends Node {
   constructor(squares, options={}) {
