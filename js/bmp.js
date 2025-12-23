@@ -1,5 +1,5 @@
 /*
-  Minimal BMP loader (24-bit and 32-bit BI_RGB, uncompressed)
+  Minimal BMP loader (24-bit and 32-bit BI_RGB, uncompressed) 
   Returns { width, height, data: Uint8ClampedArray RGBA }
 */
 export async function loadBMP(url) {
