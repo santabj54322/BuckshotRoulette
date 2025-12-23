@@ -49,30 +49,31 @@ export const ASSETS = {
 };
 
 class HpBar extends Node {
-  constructor(width=240, height=24, segments=10) {
+  constructor(capacity=6) {
     super({depth: DEPTH_UI});
-    this.width = width; this.height = height; this.segments = segments;
-    this.value = segments; this.max = segments;
-    this.onColor = '#50C878'; this.offColor = '#2D3746';
-    this.panel = new RectNode(width, height, '#1E2832', '#5A6478', 3);
-    this.add(this.panel);
-
-    const gap=4;
-    const innerH = height-6;
-    const totalGap = gap*(segments-1);
-    const baseW = Math.floor((width-totalGap)/segments);
-    const remainder = (width-totalGap)-baseW*segments;
-
-    this.cells = [];
-    let xLeft = -width/2;
-    for (let i=0;i<segments;i++) {
-      const cw = baseW + (i<remainder?1:0);
-      const cell = new RectNode(cw, innerH, this.onColor, null, 0);
-      cell.x = xLeft + cw/2; cell.y = 0;
-      this.panel.add(cell);
-      this.cells.push(cell);
-      xLeft += cw + gap;
-    }
+    this.capacity = capacity;
+  
+    // Put tray background at tray depth
+    const bg = new RectNode(280, 140, '#233232', '#506E6E', 3, { depth: this.depth });
+    bg.x = -CANVAS_W*0.25; bg.y = -10;
+    this.add(bg);
+  
+    // Slots layer at tray depth
+    this.slotsLayer = new Node({ depth: this.depth });
+    this.add(this.slotsLayer);
+  
+    // Anchor rings should be behind the icons, and stroke-only (no fill)
+    const left = bg.x - 100;
+    const y = bg.y;
+    const spacing = 40;
+    this.slots = [];
+    for (let i=0;i<this.capacity;i++) {
+      const ring = new CircleNode(14, null, '#78A0A0', 2, { depth: this.depth + 1 }); // stroke only; draw earlier (behind icons)
+      ring.x = left + i*spacing; ring.y = y;
+      this.slotsLayer.add(ring);
+      this.slots.push({ anchor: ring, icon: null, type: null, concealed: false });
+  }
+}
   }
   set(value, animate=true, duration=350) {
     value = clamp(value, 0, this.max);
@@ -118,19 +119,20 @@ class CartridgeTray extends Node {
     }
   }
 
-  async show_preview(types) {
-    if (types.length > this.slots.length) throw new Error('Too many bullets');
-    this.clear_icons();
-    for (let i=0;i<types.length;i++) {
-      const kind = types[i];
-      const icon = await mosaicFromURL(kind==='live'?ASSETS.bullet_live:ASSETS.bullet_blank, 4, 0.8);
-      icon.depth = DEPTH_UI-1;
-      const slot = this.slots[i];
-      icon.x = slot.anchor.x; icon.y = slot.anchor.y;
-      this.slotsLayer.add(icon);
-      slot.icon = icon; slot.type = kind; slot.concealed=false;
-    }
+async show_preview(types) {
+  if (types.length > this.slots.length) throw new Error('Too many bullets');
+  this.clear_icons();
+  for (let i=0;i<types.length;i++) {
+    const kind = types[i];
+    const icon = await mosaicFromURL(kind==='live'?ASSETS.bullet_live:ASSETS.bullet_blank, 4, 0.8);
+    // Draw icons after rings (in front): lower depth draws later in this engine
+    icon.depth = this.depth - 1;
+    const slot = this.slots[i];
+    icon.x = slot.anchor.x; icon.y = slot.anchor.y;
+    this.slotsLayer.add(icon);
+    slot.icon = icon; slot.type = kind; slot.concealed = false;
   }
+}
   clear_icons() {
     for (const s of this.slots) {
       if (s.icon) { if (s.icon.parent) s.icon.parent.remove(s.icon); s.icon=null; }
@@ -140,6 +142,7 @@ class CartridgeTray extends Node {
   async conceal_and_shuffle() {
     const items = this.slots.filter(s => s.icon);
     const types = items.map(s => s.type);
+    // Shuffle in-place
     for (let i=types.length-1;i>0;i--) {
       const j = Math.floor(Math.random()*(i+1));
       [types[i], types[j]] = [types[j], types[i]];
@@ -148,10 +151,13 @@ class CartridgeTray extends Node {
       const s = items[k];
       if (s.icon && s.icon.parent) s.icon.parent.remove(s.icon);
       const icon = await mosaicFromURL(ASSETS.bullet_concealed, 4, 0.8);
-      icon.depth = DEPTH_UI-1;
+      // Draw icons after rings (in front)
+      icon.depth = this.depth - 1;
       icon.x = s.anchor.x; icon.y = s.anchor.y;
       this.slotsLayer.add(icon);
-      s.icon = icon; s.type = types[k]; s.concealed = true;
+      s.icon = icon;
+      s.type = types[k];
+      s.concealed = true;
     }
   }
   take_leftmost() {
@@ -417,22 +423,26 @@ export class Game {
     let used;
     if (btype === 'blank') used = await mosaicFromURL(ASSETS.bullet_blank, 8, 0.5, 0.5);
     else used = await mosaicFromURL(ASSETS.bullet_used_live, 8, 0.5, 0.5);
+  
+    // Same depth as your Python (70): drawn behind actors but above the background
     used.depth = 70;
     used.x = 0; used.y = 0;
     this.engine.root.add(used);
-
+  
     const thrownvel = 10;
     const scale = 20;
     const angleparam = Math.random()/5 + 0.55;
     for (let i=2*thrownvel; i>0; i--) {
       let temp = -1;
       if (shooter === 'player') temp *= -1;
-      used.x += temp*i/10*angleparam*scale;
-      used.y += -temp*i/10*(1-angleparam)*scale;
-      used.rot += angleparam*6*i;
+      used.x += (temp * i / 10) * angleparam * scale;
+      used.y += (-temp * i / 10) * (1 - angleparam) * scale;
+      used.rot += angleparam * 6 * i;
       await wait(15);
     }
-    if (used.parent) used.parent.remove(used);
+  
+    // IMPORTANT: Do not remove the shell. Let it remain on the table.
+    // if (used.parent) used.parent.remove(used); // Removed on purpose
   }
 
   async rotate_barrel_to(targetDeg, duration=180) {
