@@ -2,7 +2,7 @@ import { Engine, Node, RectNode, CircleNode } from './engine.js';
 import { clamp, lerp, wait, tween, easeOutQuad, normalizeAngle, insideCircle, shake, knockback } from './utils.js';
 import { mosaicFromURL } from './mosaic.js';
 
-/* Constants */
+/* Constants */ 
 export const CANVAS_W = 1280;
 export const CANVAS_H = 720;
 
