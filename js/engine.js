@@ -91,9 +91,13 @@ export class Engine {
     const ctx = this.ctx;
     ctx.save();
     const [cx, cy] = this._toCanvas(x, y);
+  
+    // Establish a proper y-up space and then apply node transforms
     ctx.translate(cx, cy);
-    ctx.rotate(rad(rot));
+    ctx.scale(1, -1);            // Flip Y so +y is up (cs1graphics convention)
+    ctx.rotate((rot * Math.PI) / 180);
     ctx.scale(scale, scale);
+  
     if (node.drawSelf) node.drawSelf(ctx);
     else node.drawSelfImpl(ctx);
     ctx.restore();
