@@ -7,6 +7,9 @@ class MosaicNode extends Node {
     this.squares = squares; // array of {x,y,w,h,fill}
   }
   drawSelfImpl(ctx) {
+    // No stroke, no line width — just fill
+    ctx.lineWidth = 0;
+    ctx.strokeStyle = 'rgba(0,0,0,0)';
     for (const s of this.squares) {
       ctx.fillStyle = s.fill;
       ctx.fillRect(s.x - s.w/2, s.y - s.h/2, s.w, s.h);
