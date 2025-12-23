@@ -16,7 +16,7 @@ export function insideCircle(px, py, cx, cy, r) {
 }
 
 // Global animation speed. 1 = normal, 2 = 2x faster, 0.5 = 2x slower.
-let ANIM_SPEED = 1.0;
+let ANIM_SPEED = 0.25;
 export function setAnimSpeed(s) { ANIM_SPEED = Math.max(0.001, Number(s) || 1); }
 export function getAnimSpeed() { return ANIM_SPEED; }
 export function scaleDur(ms) { return ms / ANIM_SPEED; }
