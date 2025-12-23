@@ -443,22 +443,39 @@ export class Game {
   }
 
   async hand_reach_and_pick(handNode, towards='up', duration=100) {
+    // Move the hand a bit toward center (same as before)
     const origY = handNode.y;
-    const ny = towards==='up' ? origY+10 : origY-10;
-    await tween(handNode, {y: ny}, duration);
-    // switch to gun_with_hands sprite
+    const ny = (towards === 'up') ? (origY + 10) : (origY - 10);
+  
+    // Move the hand and the gun rig together so they align
+    await Promise.all([
+      (async () => { await tween(handNode, { y: ny }, duration); })(),
+      (async () => { await tween(this.nodes.gunRig, { y: ny }, duration); })()
+    ]);
+  
+    // Switch to gun-with-hands and hide the standalone hand sprite
     this.nodes.gunOnly.visible = false;
     this.nodes.gunWithHands.visible = true;
-    const deg = (towards==='up') ? 90 : -90;
+    handNode.visible = true;   // keep visible during reach
+    handNode.visible = false;  // hide once the gun sprite with hands is active
+  
+    // Aim the barrel up/down as before
+    const deg = (towards === 'up') ? 90 : -90;
     await this.rotate_barrel_to(deg, 100);
   }
-
+  
   async return_gun_to_idle(duration=200) {
-    await tween(this.nodes.gunRig, {x:0, y:0}, duration);
+    // Return gun to center and reset barrel
+    await tween(this.nodes.gunRig, { x: 0, y: 0 }, duration);
     await this.rotate_barrel_to(0, 180);
-    // switch back to gun-only sprite
+  
+    // Switch back to “gun only”
     this.nodes.gunWithHands.visible = false;
     this.nodes.gunOnly.visible = true;
+  
+    // Bring both hands back (so next turn logic can show/animate them as needed)
+    if (this.nodes.playerHandImg) this.nodes.playerHandImg.visible = true;
+    if (this.nodes.dealerHandImg) this.nodes.dealerHandImg.visible = true;
   }
 
   async muzzle_flash(target) {
