@@ -1,4 +1,4 @@
-import { rad, makeCenteredCoord } from './utils.js';
+import { rad, makeCenteredCoord } from './utils.js'; 
 
 export class Node {
   constructor({x=0,y=0,rot=0,scale=1,depth=0,visible=true}={}) {
