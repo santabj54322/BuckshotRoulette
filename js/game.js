@@ -95,7 +95,6 @@ class HpBar extends Node {
       this.value = value;
     }
   }
-}
 
 class CartridgeTray extends Node {
   constructor(capacity=6) {
