@@ -155,11 +155,13 @@ class Rectangle extends Node {
     this.w = w;
     this.h = h;
     this.fill = '#000';
-    // Border properties are kept for API compatibility, but rectangles no longer render borders.
     this.border = '#000';
     this.borderWidth = 0;
   }
-  setFillColor(c) { this.fill = c; }
+  setFillColor(c) {
+    this.fill = c;
+    this.border = c; // keep border color in sync with fill
+  }
   setBorderColor(c) { this.border = c; }
   setBorderWidth(w) { this.borderWidth = w; }
   _drawSelf(ctx) {
@@ -168,7 +170,11 @@ class Rectangle extends Node {
       ctx.fillStyle = this.fill;
       ctx.fillRect(-w/2, -h/2, w, h);
     }
-    // No stroke/border for rectangles (removed boundary)
+    if (this.borderWidth > 0) {
+      ctx.lineWidth = this.borderWidth;
+      ctx.strokeStyle = this.fill; // force border same as fill
+      ctx.strokeRect(-w/2, -h/2, w, h);
+    }
   }
 }
 
@@ -421,33 +427,30 @@ const DEPTH_FLASH  = 5;
 
 // Centralized tuning for all animation and timing parameters
 
-const SpeedCoeff = 2;
+const SpeedCoeff = 0.85;
 const TUNING = {
-  // Steps per second coefficient for all animations (global)
-  animStepsPerSecond: 60,
-
-  move: { duration: 0.28*SpeedCoeff, steps: 18 },
-  shake: { magnitude: 8, duration: 0.25*SpeedCoeff, freq: 30 },
-  knockback: { distance: 40, duration: 0.25*SpeedCoeff, steps: 18 },
+  move: { duration: 0.22*SpeedCoeff, steps: 14 },
+  shake: { magnitude: 6, duration: 0.18*SpeedCoeff, freq: 40 },
+  knockback: { distance: 34, duration: 0.20*SpeedCoeff, steps: 14 },
   gun: {
-    rotateDuration: 0.16*SpeedCoeff,
-    rotateStepDeg: 6,
-    pickupRotateDuration: 0.09*SpeedCoeff,
-    rigToHandMoveDuration: 0.12*SpeedCoeff,
-    returnToIdleDuration: 0.25*SpeedCoeff,
-    nudgeDuration: 0.10*SpeedCoeff,
-    handsReturnDuration: 0.20*SpeedCoeff,
-    handReachDuration: 0.20*SpeedCoeff,
-    kickbackDelayMS: 120*SpeedCoeff,
-    muzzleFlashFrameDelayMS: 60*SpeedCoeff
+    rotateDuration: 0.12*SpeedCoeff,
+    rotateStepDeg: 5,
+    pickupRotateDuration: 0.08*SpeedCoeff,
+    rigToHandMoveDuration: 0.10*SpeedCoeff,
+    returnToIdleDuration: 0.20*SpeedCoeff,
+    nudgeDuration: 0.08*SpeedCoeff,
+    handsReturnDuration: 0.16*SpeedCoeff,
+    handReachDuration: 0.14*SpeedCoeff,   // added to fix instant reach
+    kickbackDelayMS: 90*SpeedCoeff,
+    muzzleFlashFrameDelayMS: 45*SpeedCoeff
   },
-  hpbar: { totalDuration: 0.45*SpeedCoeff },
-  bulletShell: { thrownVel: 10, scale: 20, iterDelayMS: 25*SpeedCoeff, depth: 70 },
-  loadBullet: { duration: 0.35*SpeedCoeff, steps: 20 },
-  ai: { thinkDelayMS: 700*SpeedCoeff },
-  round: { previewDelayMS: 1200*SpeedCoeff },
-  particles: { dt: 0.02*SpeedCoeff, gravity: 500, life: 0.3 },
-  clickParticles: { size: [9,9], vel: 1000, drag: 0.85, num: 15, randomness: 0, spread: 360, depth: 10 }
+  hpbar: { totalDuration: 0.35*SpeedCoeff },
+  bulletShell: { thrownVel: 12, scale: 22, iterDelayMS: 18*SpeedCoeff, depth: 70 },
+  loadBullet: { duration: 0.28*SpeedCoeff, steps: 18 },
+  ai: { thinkDelayMS: 500*SpeedCoeff },
+  round: { previewDelayMS: 900*SpeedCoeff },
+  particles: { dt: 0.016*SpeedCoeff, gravity: 520, life: 0.28 },
+  clickParticles: { size: [9,9], vel: 1100, drag: 0.86, num: 14, randomness: 0, spread: 360, depth: 10 }
 };
 
 const ASSETS = {
@@ -481,16 +484,10 @@ const ASSETS = {
 
 const STATE = {};
 
-function steps_from_duration(duration, minSteps=1) {
-  const sps = TUNING.animStepsPerSecond || 60;
-  return Math.max(minSteps, Math.ceil(Math.max(0, duration) * sps));
-}
-
 class Animator {
   static ease_out_quad(t) { return ease_out_quad(t); }
 
-  static async animate_move(obj, sx, sy, ex, ey, duration=TUNING.move.duration, stepsIgnored=TUNING.move.steps, islst=false) {
-    const steps = steps_from_duration(duration);
+  static async animate_move(obj, sx, sy, ex, ey, duration=TUNING.move.duration, steps=TUNING.move.steps, islst=false) {
     if (islst) {
       const n = obj.length;
       if (!(sx.length === n && sy.length === n && ex.length === n && ey.length === n))
@@ -498,18 +495,18 @@ class Animator {
       for (let i = 1; i <= steps; i++) {
         const t = i / steps;
         for (let k = 0; k < n; k++) obj[k].moveTo(lerp(sx[k], ex[k], t), lerp(sy[k], ey[k], t));
-        await sleep((duration * 1000) / steps);
+        await sleep(duration * 1000 / steps);
       }
     } else {
       for (let i = 1; i <= steps; i++) {
         const t = i / steps;
         obj.moveTo(lerp(sx, ex, t), lerp(sy, ey, t));
-        await sleep((duration * 1000) / steps);
+        await sleep(duration * 1000 / steps);
       }
     }
   }
 
-  static async animate_move_pt(obj, ex, ey, duration=TUNING.move.duration, stepsIgnored=TUNING.move.steps, islst=false) {
+  static async animate_move_pt(obj, ex, ey, duration=TUNING.move.duration, steps=TUNING.move.steps, islst=false) {
     if (islst) {
       const n = obj.length;
       if (!(ex.length === n && ey.length === n)) throw new Error("Length mismatch animate_move_pt (islst)");
@@ -518,42 +515,41 @@ class Animator {
         const [wx, wy] = obj[k].getWorldXY();
         sx[k] = wx; sy[k] = wy;
       }
-      await Animator.animate_move(obj, sx, sy, ex, ey, duration, stepsIgnored, true);
+      await Animator.animate_move(obj, sx, sy, ex, ey, duration, steps, true);
     } else {
       const [sx, sy] = obj.getWorldXY();
-      await Animator.animate_move(obj, sx, sy, ex, ey, duration, stepsIgnored, false);
+      await Animator.animate_move(obj, sx, sy, ex, ey, duration, steps, false);
     }
   }
 
-  static async shake(layer, magnitude=TUNING.shake.magnitude, duration=TUNING.shake.duration, freqIgnored=TUNING.shake.freq) {
+  static async shake(layer, magnitude=TUNING.shake.magnitude, duration=TUNING.shake.duration, freq=TUNING.shake.freq) {
     const [ox, oy] = layer.getWorldXY();
-    const steps = steps_from_duration(duration);
+    const steps = Math.max(1, Math.floor(duration * freq));
     for (let i = 0; i < steps; i++) {
       const dx = Math.random() * (2*magnitude) - magnitude;
       const dy = Math.random() * (2*magnitude) - magnitude;
       layer.moveTo(ox + dx, oy + dy);
-      await sleep((duration * 1000) / steps);
+      await sleep(duration * 1000 / steps);
     }
     layer.moveTo(ox, oy);
   }
 
-  static async knockback(layer, direction='up', distance=TUNING.knockback.distance, duration=TUNING.knockback.duration, stepsIgnored=TUNING.knockback.steps) {
+  static async knockback(layer, direction='up', distance=TUNING.knockback.distance, duration=TUNING.knockback.duration, steps=TUNING.knockback.steps) {
     const [ox, oy] = layer.getWorldXY();
     let dx = 0, dy = 0;
     if (direction === 'up') dy = distance;
     else if (direction === 'down') dy = -distance;
     else if (direction === 'left') dx = -distance;
     else dx = distance;
-    const steps = steps_from_duration(duration);
     for (let i = 1; i <= steps; i++) {
       const t = Animator.ease_out_quad(i / steps);
       layer.moveTo(ox + dx * t, oy + dy * t);
-      await sleep((duration * 1000) / steps);
+      await sleep(duration * 1000 / steps);
     }
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       layer.moveTo(ox + dx * (1 - t), oy + dy * (1 - t));
-      await sleep((duration * 1000) / steps);
+      await sleep(duration * 1000 / steps);
     }
     layer.moveTo(ox, oy);
   }
@@ -899,13 +895,13 @@ function build_shotgunhand_rig(rig) {
   }
 }
 
-async function rotate_barrel_to(rig, target_deg, duration=TUNING.gun.rotateDuration, step_degIgnored=TUNING.gun.rotateStepDeg) {
+async function rotate_barrel_to(rig, target_deg, duration=TUNING.gun.rotateDuration, step_deg=TUNING.gun.rotateStepDeg) {
   if (typeof rig.angle !== 'number') rig.angle = 0;
   const target = normalize_angle(target_deg);
   let delta = normalize_angle(target - rig.angle);
   if (Math.abs(delta) < 1e-6) return;
 
-  const steps = steps_from_duration(duration);
+  const steps = Math.max(1, Math.ceil(Math.abs(delta) / step_deg));
   const per = duration / steps;
   const step = delta / steps;
 
@@ -949,9 +945,8 @@ async function return_gun_to_idle(gun_rig, duration=TUNING.gun.returnToIdleDurat
    }
 }
 
-async function die_motion(obj, direction='left', duration=0.8, stepsIgnored=24, shift=0) {
+async function die_motion(obj, direction='left', duration=0.8, steps=24, shift=0) {
   const deg = (direction === 'left') ? -90 : 90;
-  const steps = steps_from_duration(duration);
   const per = duration / steps;
   const dx_step = shift === 0 ? 0 : ((direction === 'left' ? -shift : shift) / steps);
   for (let i = 0; i < steps; i++) {
@@ -994,7 +989,7 @@ function build_background() {
   return layer;
 }
 
-async function bullet_move_to_gun(stage, start_xy, gun_layer, img_kind='concealed', duration=TUNING.loadBullet.duration, stepsIgnored=TUNING.loadBullet.steps) {
+async function bullet_move_to_gun(stage, start_xy, gun_layer, img_kind='concealed', duration=TUNING.loadBullet.duration, steps=TUNING.loadBullet.steps) {
   const [bx, by] = start_xy;
   const [gx, gy] = get_xy(gun_layer);
   const chamber = [gx, gy];
@@ -1007,7 +1002,6 @@ async function bullet_move_to_gun(stage, start_xy, gun_layer, img_kind='conceale
   move_to(icon, bx, by);
   stage.add(icon);
 
-  const steps = steps_from_duration(duration);
   for (let i = 1; i <= steps; i++) {
     const t = ease_out_quad(i / steps);
     move_to(icon, lerp(bx, chamber[0], t), lerp(by, chamber[1], t));
@@ -1029,7 +1023,6 @@ function update_damage_box(swag=false) {
   dmg_layer.add(newnum_t);
   newnum_t.moveTo(120,0);
   if (swag) {
-    // This tiny feedback animation is intentionally left unchanged (excluded)
     const increment = Math.pow(128/125, 2 + STATE.stack);
     (async () => {
       for (let i = 0; i < 3; i++) { dmg_layer.scale(increment); await sleep(20); }
