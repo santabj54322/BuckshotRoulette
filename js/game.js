@@ -2,7 +2,7 @@
 
 const CANVAS_W = 1280, CANVAS_H = 720;
 const CARTRIDGE_CAPACITY = 6;
-const HP_MAX = 10;
+const HP_MAX = 10; 
 
 // Depth ordering (lower = in front)
 const DEPTH_BG     = 100;
