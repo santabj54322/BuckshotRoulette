@@ -156,7 +156,7 @@ class Rectangle extends Node {
     this.h = h;
     this.fill = '#000';
     this.border = '#000';
-    this.borderWidth = 0;
+    this.borderWidth = 0; // default no border
   }
   setFillColor(c) { this.fill = c; }
   setBorderColor(c) { this.border = c; }
@@ -181,7 +181,7 @@ class Circle extends Node {
     this.r = r;
     this.fill = '#000';
     this.border = '#000';
-    this.borderWidth = 0;
+    this.borderWidth = 0; // default no border
   }
   setFillColor(c) { this.fill = c; }
   setBorderColor(c) { this.border = c; }
@@ -374,6 +374,9 @@ function mosaic_layer_from_image(img, scale, sizefactor=1.0, alpha=1.0, fading=n
       const bh = (y1 - y0) * S;
       const sq = new Rectangle(bw, bh);
 
+      // ensure no border for mosaic rectangles (BMP image tiles)
+      sq.setBorderWidth(0);
+
       let fadingmult = 1;
       if (fading !== null) {
         const [fx_end, fy_end, fx_pow, fy_pow] = fading;
@@ -389,7 +392,6 @@ function mosaic_layer_from_image(img, scale, sizefactor=1.0, alpha=1.0, fading=n
       g = Math.max(0, Math.min(255, Math.floor(g * alpha * fadingmult)));
       b = Math.max(0, Math.min(255, Math.floor(b * alpha * fadingmult)));
       sq.setFillColor(Color([r,g,b]));
-      sq.setBorderWidth(0);
 
       const cx = (-w / 2 + (x0 + x1) / 2) * S;
       const cy = ( h / 2 - (y0 + y1) / 2) * S;
@@ -419,6 +421,31 @@ const DEPTH_GUN    = 40;
 const DEPTH_HANDS  = 30;
 const DEPTH_UI     = 20;
 const DEPTH_FLASH  = 5;
+
+// Centralized tuning for all animation and timing parameters
+const TUNING = {
+  move: { duration: 0.28, steps: 18 },
+  shake: { magnitude: 8, duration: 0.25, freq: 30 },
+  knockback: { distance: 40, duration: 0.25, steps: 18 },
+  gun: {
+    rotateDuration: 0.16,
+    rotateStepDeg: 6,
+    pickupRotateDuration: 0.09,
+    rigToHandMoveDuration: 0.12,
+    returnToIdleDuration: 0.25,
+    nudgeDuration: 0.10,
+    handsReturnDuration: 0.20,
+    kickbackDelayMS: 120,
+    muzzleFlashFrameDelayMS: 60
+  },
+  hpbar: { totalDuration: 0.45 },
+  bulletShell: { thrownVel: 10, scale: 20, iterDelayMS: 25, depth: 70 },
+  loadBullet: { duration: 0.35, steps: 20 },
+  ai: { thinkDelayMS: 700 },
+  round: { previewDelayMS: 1200 },
+  particles: { dt: 0.02, gravity: 500, life: 0.3 },
+  clickParticles: { size: [9,9], vel: 1000, drag: 0.85, num: 15, randomness: 0, spread: 360, depth: 10 }
+};
 
 const ASSETS = {
   "dealer_face":  "assets/Dealer2.bmp",
@@ -454,7 +481,7 @@ const STATE = {};
 class Animator {
   static ease_out_quad(t) { return ease_out_quad(t); }
 
-  static async animate_move(obj, sx, sy, ex, ey, duration=0.3, steps=18, islst=false) {
+  static async animate_move(obj, sx, sy, ex, ey, duration=TUNING.move.duration, steps=TUNING.move.steps, islst=false) {
     if (islst) {
       const n = obj.length;
       if (!(sx.length === n && sy.length === n && ex.length === n && ey.length === n))
@@ -473,7 +500,7 @@ class Animator {
     }
   }
 
-  static async animate_move_pt(obj, ex, ey, duration=0.3, steps=18, islst=false) {
+  static async animate_move_pt(obj, ex, ey, duration=TUNING.move.duration, steps=TUNING.move.steps, islst=false) {
     if (islst) {
       const n = obj.length;
       if (!(ex.length === n && ey.length === n)) throw new Error("Length mismatch animate_move_pt (islst)");
@@ -489,7 +516,7 @@ class Animator {
     }
   }
 
-  static async shake(layer, magnitude=8, duration=0.25, freq=30) {
+  static async shake(layer, magnitude=TUNING.shake.magnitude, duration=TUNING.shake.duration, freq=TUNING.shake.freq) {
     const [ox, oy] = layer.getWorldXY();
     const steps = Math.max(1, Math.floor(duration * freq));
     for (let i = 0; i < steps; i++) {
@@ -501,7 +528,7 @@ class Animator {
     layer.moveTo(ox, oy);
   }
 
-  static async knockback(layer, direction='up', distance=40, duration=0.25, steps=18) {
+  static async knockback(layer, direction='up', distance=TUNING.knockback.distance, duration=TUNING.knockback.duration, steps=TUNING.knockback.steps) {
     const [ox, oy] = layer.getWorldXY();
     let dx = 0, dy = 0;
     if (direction === 'up') dy = distance;
@@ -544,7 +571,7 @@ class Particles {
     for (let i = 0; i < num; i++) {
       const s = (Array.isArray(size) ? (Math.random() * (size[1]-size[0]) + size[0]) : size);
       const rect = new Rectangle(s, s);
-      rect.setBorderWidth(0);
+      rect.setBorderWidth(0); // no border for particle quads
       rect.setFillColor(color);
       rect.moveTo(x0, y0);
       rect.setDepth(this.depth);
@@ -616,7 +643,7 @@ class HpBar {
     for (let i = 0; i < segments; i++) {
       const cw = base_w + (i < remainder ? 1 : 0);
       const cell = new Rectangle(cw, inner_h);
-      cell.setBorderWidth(0);
+      cell.setBorderWidth(0); // no borders on bar segments
       cell.setFillColor(this.on_color);
       const cx = x + cw / 2.0;
       move_to(cell, cx, 0);
@@ -631,7 +658,7 @@ class HpBar {
   setDepth(d) { this.node.setDepth(d); }
   moveTo(x,y) { this.node.moveTo(x,y); }
 
-  set(value, animate=true, duration=0.35) {
+  set(value, animate=true, duration=TUNING.hpbar.totalDuration) {
     value = Math.max(0, Math.min(this.max, value));
     const prev = this.value;
     if (value === prev) return;
@@ -768,7 +795,7 @@ function build_table_layer() {
 
   const ring_outer = new Circle(140);
   ring_outer.setBorderColor(Color([40,140,90]));
-  ring_outer.setBorderWidth(6);
+  ring_outer.setBorderWidth(6));
   ring_outer.setFillColor(Color([25,60,45]));
   move_to(ring_outer, 0, 0);
   table.add(ring_outer);
@@ -862,7 +889,7 @@ function build_shotgunhand_rig(rig) {
   }
 }
 
-async function rotate_barrel_to(rig, target_deg, duration=0.18, step_deg=6) {
+async function rotate_barrel_to(rig, target_deg, duration=TUNING.gun.rotateDuration, step_deg=TUNING.gun.rotateStepDeg) {
   if (typeof rig.angle !== 'number') rig.angle = 0;
   const target = normalize_angle(target_deg);
   let delta = normalize_angle(target - rig.angle);
@@ -874,31 +901,31 @@ async function rotate_barrel_to(rig, target_deg, duration=0.18, step_deg=6) {
 
   for (let i = 0; i < steps; i++) {
     rig.rotate(step);
-    rig.angle = normalize_angle(rig.angle);
+    rig.angle = normalize_angle(rig.angle + step);
     await sleep(per * 1000);
   }
 
   const residual = normalize_angle(target - rig.angle);
   if (Math.abs(residual) > 0.01) {
     rig.rotate(residual);
-    rig.angle = normalize_angle(rig.angle);
+    rig.angle = normalize_angle(rig.angle + residual);
   }
 }
 
-async function hand_reach_and_pick(hand, gun_rig, towards='up', duration=0.25) {
+async function hand_reach_and_pick(hand, gun_rig, towards='up', duration=TUNING.gun.handReachDuration) {
   const [hx, hy] = get_xy(hand);
-  await Animator.animate_move(hand, hx, hy, 0, 0, duration, 10, false);
+  await Animator.animate_move(hand, hx, hy, 0, 0, duration, TUNING.move.steps, false);
   build_shotgunhand_rig(gun_rig);
   for (const drawable of hand.contents()) {
     try { hand.remove(drawable); } catch {}
   }
-  if (towards === 'up') await rotate_barrel_to(gun_rig, 90, 0.09);
-  else await rotate_barrel_to(gun_rig, -90, 0.09);
-  await Animator.animate_move_pt(gun_rig, hx, hy, 0.09, 6, false);
+  if (towards === 'up') await rotate_barrel_to(gun_rig, 90, TUNING.gun.pickupRotateDuration);
+  else await rotate_barrel_to(gun_rig, -90, TUNING.gun.pickupRotateDuration);
+  await Animator.animate_move_pt(gun_rig, hx, hy, TUNING.gun.rigToHandMoveDuration, TUNING.move.steps, false);
 }
 
-async function return_gun_to_idle(gun_rig, duration=0.25) {
-  await Animator.animate_move_pt(gun_rig, 0, 0, duration, 12, false);
+async function return_gun_to_idle(gun_rig, duration=TUNING.gun.returnToIdleDuration) {
+  await Animator.animate_move_pt(gun_rig, 0, 0, duration, TUNING.move.steps, false);
   await rotate_barrel_to(gun_rig, 0);
   if (gun_rig.gun_with_hands) {
     try { gun_rig.remove(gun_rig.gun_with_hands); } catch {}
@@ -935,18 +962,18 @@ async function throw_used_bullet(btype, shooter, stage) {
 
   move_to(usedbullet, 0, 0);
   stage.add(usedbullet);
-  usedbullet.setDepth(70);
-  const thrownvel = 10;
-  const scale = 20;
+  usedbullet.setDepth(TUNING.bulletShell.depth);
+  const thrownvel = TUNING.bulletShell.thrownVel;
+  const scale = TUNING.bulletShell.scale;
   const angleparam = Math.random()/5 + 0.55;
   for (let i = 2*thrownvel; i > 0; i--) {
     let temp = -1;
     if (shooter === "player") temp *= -1;
     usedbullet.move(temp*i/2/5*angleparam*scale, -temp*i/2/5*(1-angleparam)*scale);
     usedbullet.rotate(angleparam*6*i);
-    await sleep(0.15*100);
+    await sleep(TUNING.bulletShell.iterDelayMS);
   }
-  try { stage.remove(usedbullet); } catch {}
+  // Do NOT remove used bullet shells; leave them on the table.
 }
 
 function build_background() {
@@ -956,7 +983,7 @@ function build_background() {
   return layer;
 }
 
-async function bullet_move_to_gun(stage, start_xy, gun_layer, img_kind='concealed', duration=0.35, steps=20) {
+async function bullet_move_to_gun(stage, start_xy, gun_layer, img_kind='concealed', duration=TUNING.loadBullet.duration, steps=TUNING.loadBullet.steps) {
   const [bx, by] = start_xy;
   const [gx, gy] = get_xy(gun_layer);
   const chamber = [gx, gy];
@@ -1014,7 +1041,7 @@ async function preload_next_bullet() {
   if (!kind) return;
 
   STATE.busy = true;
-  await bullet_move_to_gun(STATE.stage, start_xy, STATE.gun_rig, 'concealed', 0.35, 20);
+  await bullet_move_to_gun(STATE.stage, start_xy, STATE.gun_rig, 'concealed', TUNING.loadBullet.duration, TUNING.loadBullet.steps);
   STATE.chambered = kind;
 
   if (STATE.prev !== null) {
@@ -1029,14 +1056,14 @@ async function hp_damage(who, amount) {
     const target = STATE.player_layer;
     STATE.player_hp = Math.max(0, STATE.player_hp - amount);
     STATE.hp_player.set(STATE.player_hp, true);
-    await Animator.shake(target, 10, 0.25, 40);
-    await Animator.knockback(target, 'up', 40, 0.25, 18);
+    await Animator.shake(target, TUNING.shake.magnitude, TUNING.shake.duration, TUNING.shake.freq);
+    await Animator.knockback(target, 'up', TUNING.knockback.distance, TUNING.knockback.duration, TUNING.knockback.steps);
   } else {
     const target = STATE.dealer_layer;
     STATE.dealer_hp = Math.max(0, STATE.dealer_hp - amount);
     STATE.hp_dealer.set(STATE.dealer_hp, true);
-    await Animator.shake(target, 10, 0.25, 40);
-    await Animator.knockback(target, 'down', 40, 0.25, 18);
+    await Animator.shake(target, TUNING.shake.magnitude, TUNING.shake.duration, TUNING.shake.freq);
+    await Animator.knockback(target, 'down', TUNING.knockback.distance, TUNING.knockback.duration, TUNING.knockback.steps);
   }
 }
 
@@ -1047,8 +1074,8 @@ async function animate_player_choice_and_shoot(shooter, target) {
     await preload_next_bullet();
     if (STATE.chambered == null) {
       await return_gun_to_idle(STATE.gun_rig);
-      await Animator.animate_move_pt(STATE.player_hand, 0, STATE.player_hand_idle_y, 0.1, 6, false);
-      await Animator.animate_move_pt(STATE.dealer_hand, 0, STATE.dealer_hand_idle_y, 0.1, 6, false);
+      await Animator.animate_move_pt(STATE.player_hand, 0, STATE.player_hand_idle_y, TUNING.gun.handsReturnDuration, TUNING.move.steps, false);
+      await Animator.animate_move_pt(STATE.dealer_hand, 0, STATE.dealer_hand_idle_y, TUNING.gun.handsReturnDuration, TUNING.move.steps, false);
       await start_new_round();
       STATE.busy = false;
       return;
@@ -1058,14 +1085,15 @@ async function animate_player_choice_and_shoot(shooter, target) {
   if (shooter === 'player') {
     const [hx, hy] = get_xy(STATE.player_hand);
     const ny = (target === 'dealer') ? hy + 10 : hy - 10;
-    await Animator.animate_move_pt([STATE.gun_rig, STATE.player_hand], [0, 0], [ny, ny], 0.1, 12, true);
+    await Animator.animate_move_pt([STATE.gun_rig, STATE.player_hand], [0, 0], [ny, ny], TUNING.gun.nudgeDuration, TUNING.move.steps, true);
   } else {
     const [hx, hy] = get_xy(STATE.dealer_hand);
     const ny = (target === 'dealer') ? hy + 10 : hy - 10;
-    await Animator.animate_move_pt([STATE.gun_rig, STATE.dealer_hand], [0, 0], [ny, ny], 0.1, 12, true);
+    await Animator.animate_move_pt([STATE.gun_rig, STATE.dealer_hand], [0, 0], [ny, ny], TUNING.gun.nudgeDuration, TUNING.move.steps, true);
   }
 
-  const desired = (target === 'dealer') ? 180 : 0;
+  // Fix: correct shotgun aiming direction (dealer=up=+90, player=down=-90)
+  const desired = (target === 'dealer') ? 90 : -90;
   await rotate_barrel_to(STATE.gun_rig, desired);
 
   const kind = STATE.chambered;
@@ -1078,7 +1106,7 @@ async function animate_player_choice_and_shoot(shooter, target) {
 
   if (kind === 'live') {
     move_to(STATE.gun_rig, gx + 0, gy - offset);
-    await sleep(100);
+    await sleep(TUNING.gun.kickbackDelayMS);
     move_to(STATE.gun_rig, gx, gy);
 
     for (const i of [1, 4]) {
@@ -1097,7 +1125,7 @@ async function animate_player_choice_and_shoot(shooter, target) {
         effect.rotate(180);
       }
       STATE.stage.add(effect);
-      await sleep(50);
+      await sleep(TUNING.gun.muzzleFlashFrameDelayMS);
       try { STATE.stage.remove(effect); } catch {}
     }
 
@@ -1115,7 +1143,7 @@ async function animate_player_choice_and_shoot(shooter, target) {
     STATE.turn = (shooter === 'player') ? 'dealer' : 'player';
   } else {
     move_to(STATE.gun_rig, gx + 0, gy + offset);
-    await sleep(100);
+    await sleep(TUNING.gun.kickbackDelayMS);
     move_to(STATE.gun_rig, gx, gy);
     if (shooter === target) {
       STATE.stack = Math.min(10, STATE.stack + 1);
@@ -1126,8 +1154,8 @@ async function animate_player_choice_and_shoot(shooter, target) {
   }
 
   await return_gun_to_idle(STATE.gun_rig);
-  await Animator.animate_move_pt(STATE.player_hand, 0, STATE.player_hand_idle_y, 0.2, 12, false);
-  await Animator.animate_move_pt(STATE.dealer_hand, 0, STATE.dealer_hand_idle_y, 0.2, 12, false);
+  await Animator.animate_move_pt(STATE.player_hand, 0, STATE.player_hand_idle_y, TUNING.gun.handsReturnDuration, TUNING.move.steps, false);
+  await Animator.animate_move_pt(STATE.dealer_hand, 0, STATE.dealer_hand_idle_y, TUNING.gun.handsReturnDuration, TUNING.move.steps, false);
 
   if (STATE.turn === 'dealer') {
     const player_hand_img = Mosaic.mosaic_layer_from_image(BMP.load_bmp_to_Image(ASSETS["player_hand"]), 4);
@@ -1175,13 +1203,41 @@ async function player_turn() {
     const [dx, dy] = STATE.dealer_layer.getWorldXY();
     if (inside_circle(x, y, px, py, 90)) {
       const [fx, fy] = STATE.player_layer.getWorldXY();
-      const p = new Particles([255,255,255], [9,9], [fx,fy], 1000, 0.85, 15, 0, 'up', 360, 0, 0.3, 10, 0.02);
+      const p = new Particles(
+        [255,255,255],
+        TUNING.clickParticles.size,
+        [fx,fy],
+        TUNING.clickParticles.vel,
+        TUNING.clickParticles.drag,
+        TUNING.clickParticles.num,
+        TUNING.clickParticles.randomness,
+        'up',
+        TUNING.clickParticles.spread,
+        0,
+        TUNING.particles.life,
+        TUNING.clickParticles.depth,
+        TUNING.particles.dt
+      );
       await p.move();
       await animate_player_choice_and_shoot('player', 'player');
       break;
     } else if (inside_circle(x, y, dx, dy, 90)) {
       const [fx, fy] = STATE.dealer_layer.getWorldXY();
-      const p = new Particles([255,255,255], [9,9], [fx,fy], 1000, 0.85, 15, 0, 'up', 360, 0, 0.3, 10, 0.02);
+      const p = new Particles(
+        [255,255,255],
+        TUNING.clickParticles.size,
+        [fx,fy],
+        TUNING.clickParticles.vel,
+        TUNING.clickParticles.drag,
+        TUNING.clickParticles.num,
+        TUNING.clickParticles.randomness,
+        'up',
+        TUNING.clickParticles.spread,
+        0,
+        TUNING.particles.life,
+        TUNING.clickParticles.depth,
+        TUNING.particles.dt
+      );
       await p.move();
       await animate_player_choice_and_shoot('player', 'dealer');
       break;
@@ -1190,7 +1246,7 @@ async function player_turn() {
 }
 
 async function dealer_turn() {
-  await sleep(500);
+  await sleep(TUNING.ai.thinkDelayMS);
   let live = 0, blank = 0;
   for (const i of STATE.round_types) {
     if (i === "live") live++; else blank++;
@@ -1211,7 +1267,7 @@ async function start_new_round() {
   const types = Array(live).fill('live').concat(Array(blanks).fill('blank'));
   STATE.preview_types = types.slice();
   STATE.cartridge.show_preview(types);
-  await sleep(1500);
+  await sleep(TUNING.round.previewDelayMS);
   STATE.cartridge.conceal_and_shuffle();
   const tmp = [];
   for (const s of STATE.cartridge.slots) if (s.icon) tmp.push(s.type);
@@ -1285,30 +1341,30 @@ async function run_game() {
       continue;
     }
     STATE.gun_rig = build_shotgun_rig(STATE.gun_rig);
-    await return_gun_to_idle(STATE.gun_rig, 0.2);
+    await return_gun_to_idle(STATE.gun_rig, TUNING.gun.returnToIdleDuration);
 
     if (STATE.turn === 'player') {
       const [, hy] = get_xy(STATE.player_hand);
       const towards = (hy < 0) ? 'up' : 'down';
-      await hand_reach_and_pick(STATE.player_hand, STATE.gun_rig, towards, 0.1);
+      await hand_reach_and_pick(STATE.player_hand, STATE.gun_rig, towards, TUNING.gun.handReachDuration);
       await player_turn();
     } else {
       const [, hy] = get_xy(STATE.dealer_hand);
       const towards = (hy < 0) ? 'up' : 'down';
-      await hand_reach_and_pick(STATE.dealer_hand, STATE.gun_rig, towards, 0.1);
+      await hand_reach_and_pick(STATE.dealer_hand, STATE.gun_rig, towards, TUNING.gun.handReachDuration);
       await dealer_turn();
     }
   }
 
   let banner, winner;
   if (STATE.dealer_hp <= 0) {
-    await die_motion(STATE.dealer_layer, 'right', 0.8);
-    await die_motion(STATE.dealer_hand, 'right', 0.6);
+    await die_motion(STATE.dealer_layer, 'right', 0.8, 24);
+    await die_motion(STATE.dealer_hand, 'right', 0.6, 24);
     banner = Mosaic.mosaic_layer_from_image(BMP.load_bmp_to_Image(ASSETS["youwin"]), 1, 20);
     winner = 'player';
   } else {
-    await die_motion(STATE.player_layer, 'left', 0.8);
-    await die_motion(STATE.player_hand, 'left', 0.6);
+    await die_motion(STATE.player_layer, 'left', 0.8, 24);
+    await die_motion(STATE.player_hand, 'left', 0.6, 24);
     banner = Mosaic.mosaic_layer_from_image(BMP.load_bmp_to_Image(ASSETS["youlose"]), 1, 20);
     winner = 'dealer';
   }
