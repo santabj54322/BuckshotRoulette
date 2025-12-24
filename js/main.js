@@ -423,27 +423,29 @@ const DEPTH_UI     = 20;
 const DEPTH_FLASH  = 5;
 
 // Centralized tuning for all animation and timing parameters
+
+const SpeedCoeff = 2;
 const TUNING = {
-  move: { duration: 0.28, steps: 18 },
-  shake: { magnitude: 8, duration: 0.25, freq: 30 },
-  knockback: { distance: 40, duration: 0.25, steps: 18 },
+  move: { duration: 0.28*SpeedCoeff, steps: 18 },
+  shake: { magnitude: 8, duration: 0.25*SpeedCoeff, freq: 30 },
+  knockback: { distance: 40, duration: 0.25*SpeedCoeff, steps: 18 },
   gun: {
-    rotateDuration: 0.16,
+    rotateDuration: 0.16*SpeedCoeff,
     rotateStepDeg: 6,
-    pickupRotateDuration: 0.09,
-    rigToHandMoveDuration: 0.12,
-    returnToIdleDuration: 0.25,
-    nudgeDuration: 0.10,
-    handsReturnDuration: 0.20,
-    kickbackDelayMS: 120,
-    muzzleFlashFrameDelayMS: 60
+    pickupRotateDuration: 0.09*SpeedCoeff,
+    rigToHandMoveDuration: 0.12*SpeedCoeff,
+    returnToIdleDuration: 0.25*SpeedCoeff,
+    nudgeDuration: 0.10*SpeedCoeff,
+    handsReturnDuration: 0.20*SpeedCoeff,
+    kickbackDelayMS: 120*SpeedCoeff,
+    muzzleFlashFrameDelayMS: 60*SpeedCoeff
   },
-  hpbar: { totalDuration: 0.45 },
-  bulletShell: { thrownVel: 10, scale: 20, iterDelayMS: 25, depth: 70 },
-  loadBullet: { duration: 0.35, steps: 20 },
-  ai: { thinkDelayMS: 700 },
-  round: { previewDelayMS: 1200 },
-  particles: { dt: 0.02, gravity: 500, life: 0.3 },
+  hpbar: { totalDuration: 0.45*SpeedCoeff },
+  bulletShell: { thrownVel: 10, scale: 20, iterDelayMS: 25*SpeedCoeff, depth: 70 },
+  loadBullet: { duration: 0.35*SpeedCoeff, steps: 20 },
+  ai: { thinkDelayMS: 700*SpeedCoeff },
+  round: { previewDelayMS: 1200*SpeedCoeff },
+  particles: { dt: 0.02*SpeedCoeff, gravity: 500, life: 0.3 },
   clickParticles: { size: [9,9], vel: 1000, drag: 0.85, num: 15, randomness: 0, spread: 360, depth: 10 }
 };
 
@@ -919,8 +921,8 @@ async function hand_reach_and_pick(hand, gun_rig, towards='up', duration=TUNING.
   for (const drawable of hand.contents()) {
     try { hand.remove(drawable); } catch {}
   }
-  if (towards === 'up') await rotate_barrel_to(gun_rig, 180, TUNING.gun.pickupRotateDuration);
-  else await rotate_barrel_to(gun_rig, 0, TUNING.gun.pickupRotateDuration);
+  if (towards === 'up') await rotate_barrel_to(gun_rig, -90, TUNING.gun.pickupRotateDuration);
+  else await rotate_barrel_to(gun_rig, 90, TUNING.gun.pickupRotateDuration);
   await Animator.animate_move_pt(gun_rig, hx, hy, TUNING.gun.rigToHandMoveDuration, TUNING.move.steps, false);
 }
 
@@ -1017,10 +1019,10 @@ function update_damage_box(swag=false) {
   dmg_layer.add(newnum_t);
   newnum_t.moveTo(120,0);
   if (swag) {
-    const increment = Math.pow(128/125, 4 + STATE.stack);
+    const increment = Math.pow(128/125, 2 + STATE.stack);
     (async () => {
-      for (let i = 0; i < 2; i++) { dmg_layer.scale(increment); await sleep(50); }
-      for (let i = 0; i < 2; i++) { dmg_layer.scale(1/increment); await sleep(50); }
+      for (let i = 0; i < 3; i++) { dmg_layer.scale(increment); await sleep(20); }
+      for (let i = 0; i < 3; i++) { dmg_layer.scale(1/increment); await sleep(20); }
     })();
   }
 }
