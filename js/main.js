@@ -907,9 +907,9 @@ async function return_gun_to_idle(gun_rig, duration=0.25) {
     gun_rig.gun_only = Mosaic.mosaic_layer_from_image(BMP.load_bmp_to_Image(ASSETS["shotgun"]), 4, 1.5);
     move_to(gun_rig.gun_only, 0, 0);
   }
-  if (!gun_rig.contents().includes(gun_rig.gun_only)) {
-    rig.add(rig.gun_only);
-  }
+   if (!gun_rig.contents().includes(gun_rig.gun_only)) {
+     gun_rig.add(gun_rig.gun_only);
+   }
 }
 
 async function die_motion(obj, direction='left', duration=0.8, steps=24, shift=0) {
@@ -1328,14 +1328,21 @@ window.Game = { init_game, run_game, start_new_round, preload_next_bullet };
 
 (async function main() {
   const allAssetPaths = Object.values(ASSETS);
-  const firePaths = ["assets/Fire12.bmp", "assets/Fire42.bmp", "assets/Fire1_2.bmp", "assets/Fire4_2.bmp"];
+  const firePaths = ["assets/Fire12.bmp", "assets/Fire42.bmp"];
   const preloadList = allAssetPaths.concat(firePaths);
 
-  try {
-    await BMP.preloadBMPS(preloadList);
-  } catch(e) {
-    console.warn("Some assets failed to preload:", e.message);
-  }
+   try {
+     await Promise.all(
+       preloadList.map(u =>
+         BMP.loadBMP(u).catch(e => {
+           console.warn("Skip asset:", u, e.message);
+           return null;
+         })
+       )
+     );
+   } catch(e) {
+     console.warn("Preload finished with some skips.");
+   }
 
   while (true) {
     Game.init_game(false);
