@@ -1,6 +1,6 @@
 /* Minimal scene graph and renderer to mimic cs1graphics behavior */
 
-class Node {
+export class Node {
   constructor() {
     this.x = 0;
     this.y = 0;
