@@ -74,7 +74,7 @@ class HpBar extends Node {
       this.slots.push({ anchor: ring, icon: null, type: null, concealed: false });
   }
 }
-  }
+
   set(value, animate=true, duration=350) {
     value = clamp(value, 0, this.max);
     if (value === this.value) return;
@@ -95,6 +95,7 @@ class HpBar extends Node {
       this.value = value;
     }
   }
+}
 
 class CartridgeTray extends Node {
   constructor(capacity=6) {
