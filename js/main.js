@@ -156,7 +156,7 @@ class Rectangle extends Node {
     this.h = h;
     this.fill = '#000';
     this.border = '#000';
-    this.borderWidth = 0;
+    this.borderWidth = 2;
   }
   setFillColor(c) {
     this.fill = c;
@@ -943,8 +943,8 @@ async function hand_reach_and_pick(hand, gun_rig, towards='up', duration=TUNING.
   for (const drawable of hand.contents()) {
     try { hand.remove(drawable); } catch {}
   }
-  if (towards === 'up') await rotate_barrel_to(gun_rig, -90, TUNING.gun.pickupRotateDuration);
-  else await rotate_barrel_to(gun_rig, 90, TUNING.gun.pickupRotateDuration);
+  if (towards === 'up') await rotate_barrel_to(gun_rig, 0, TUNING.gun.pickupRotateDuration);
+  else await rotate_barrel_to(gun_rig, 180, TUNING.gun.pickupRotateDuration);
   await Animator.animate_move_pt(gun_rig, hx, hy, TUNING.gun.rigToHandMoveDuration, TUNING.move.steps, false);
 }
 
@@ -1117,7 +1117,7 @@ async function animate_player_choice_and_shoot(shooter, target) {
   }
 
   // Fix: correct shotgun aiming direction (dealer=up=+90, player=down=-90)
-  const desired = (target === 'dealer') ? 90 : -90;
+  const desired = (target === 'dealer') ? 180 : 0;
   await rotate_barrel_to(STATE.gun_rig, desired);
 
   const kind = STATE.chambered;
