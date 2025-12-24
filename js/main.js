@@ -427,29 +427,47 @@ const DEPTH_FLASH  = 5;
 
 // Centralized tuning for all animation and timing parameters
 
-const SpeedCoeff = 0.85;
+const SpeedCoeff = 1.30; // was 0.85
+
 const TUNING = {
-  move: { duration: 0.22*SpeedCoeff, steps: 14 },
-  shake: { magnitude: 6, duration: 0.18*SpeedCoeff, freq: 40 },
-  knockback: { distance: 34, duration: 0.20*SpeedCoeff, steps: 14 },
+  move: { duration: 0.22*SpeedCoeff, steps: 24 }, // was steps: 14
+  shake: { magnitude: 6, duration: 0.18*SpeedCoeff, freq: 46 }, // slightly higher freq for smoothness
+  knockback: { distance: 34, duration: 0.20*SpeedCoeff, steps: 24 }, // was steps: 14
+
   gun: {
     rotateDuration: 0.12*SpeedCoeff,
-    rotateStepDeg: 5,
+    rotateStepDeg: 3, // was 5 (more steps -> smoother/slower perceived motion)
     pickupRotateDuration: 0.08*SpeedCoeff,
     rigToHandMoveDuration: 0.10*SpeedCoeff,
     returnToIdleDuration: 0.20*SpeedCoeff,
     nudgeDuration: 0.08*SpeedCoeff,
     handsReturnDuration: 0.16*SpeedCoeff,
-    handReachDuration: 0.14*SpeedCoeff,   // added to fix instant reach
-    kickbackDelayMS: 90*SpeedCoeff,
-    muzzleFlashFrameDelayMS: 45*SpeedCoeff
+    handReachDuration: 0.14*SpeedCoeff,
+    kickbackDelayMS: Math.round(90*SpeedCoeff),          // was 90
+    muzzleFlashFrameDelayMS: Math.round(45*SpeedCoeff)   // was 45
   },
+
   hpbar: { totalDuration: 0.35*SpeedCoeff },
-  bulletShell: { thrownVel: 12, scale: 22, iterDelayMS: 18*SpeedCoeff, depth: 70 },
-  loadBullet: { duration: 0.28*SpeedCoeff, steps: 18 },
-  ai: { thinkDelayMS: 500*SpeedCoeff },
-  round: { previewDelayMS: 900*SpeedCoeff },
-  particles: { dt: 0.016*SpeedCoeff, gravity: 520, life: 0.28 },
+
+  bulletShell: {
+    thrownVel: 12,
+    scale: 22,
+    iterDelayMS: Math.round(18*SpeedCoeff), // was 18
+    depth: 70
+  },
+
+  loadBullet: { duration: 0.28*SpeedCoeff, steps: 28 }, // was steps: 18
+
+  ai: { thinkDelayMS: Math.round(500*SpeedCoeff) },
+
+  round: { previewDelayMS: Math.round(900*SpeedCoeff) },
+
+  particles: {
+    dt: 0.016*SpeedCoeff,  // keep physics stable but slightly slower tick
+    gravity: 520,
+    life: 0.32             // was 0.28 (lets particles linger a bit longer)
+  },
+
   clickParticles: { size: [9,9], vel: 1100, drag: 0.86, num: 14, randomness: 0, spread: 360, depth: 10 }
 };
 
