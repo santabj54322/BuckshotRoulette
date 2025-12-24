@@ -795,7 +795,7 @@ function build_table_layer() {
 
   const ring_outer = new Circle(140);
   ring_outer.setBorderColor(Color([40,140,90]));
-  ring_outer.setBorderWidth(6));
+  ring_outer.setBorderWidth(6);
   ring_outer.setFillColor(Color([25,60,45]));
   move_to(ring_outer, 0, 0);
   table.add(ring_outer);
