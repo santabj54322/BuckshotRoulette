@@ -821,7 +821,7 @@ function build_number_layer() {
   t_plus.moveTo(85, 0);
   t_zero.moveTo(120,0);
   move_to(layer, 120, 120);
-  layer.rotate(45);
+  layer.rotate(-45);
   return layer;
 }
 
@@ -919,8 +919,8 @@ async function hand_reach_and_pick(hand, gun_rig, towards='up', duration=TUNING.
   for (const drawable of hand.contents()) {
     try { hand.remove(drawable); } catch {}
   }
-  if (towards === 'up') await rotate_barrel_to(gun_rig, 90, TUNING.gun.pickupRotateDuration);
-  else await rotate_barrel_to(gun_rig, -90, TUNING.gun.pickupRotateDuration);
+  if (towards === 'up') await rotate_barrel_to(gun_rig, 180, TUNING.gun.pickupRotateDuration);
+  else await rotate_barrel_to(gun_rig, 0, TUNING.gun.pickupRotateDuration);
   await Animator.animate_move_pt(gun_rig, hx, hy, TUNING.gun.rigToHandMoveDuration, TUNING.move.steps, false);
 }
 
