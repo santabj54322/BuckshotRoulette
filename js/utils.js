@@ -1,82 +1,52 @@
-export function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-export function lerp(a, b, t) { return a + (b - a) * t; }
-export function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
-export function easeInOutCubic(t) {
-  return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
-}
-export function normalizeAngle(deg) {
-  let a = ((deg % 360) + 360) % 360;
+/* Utilities and compatibility helpers */
+
+function normalize_angle(a) {
+  a = a % 360;
   if (a > 180) a -= 360;
-  return a;ㄴ
-}
-export function rad(deg) { return (deg * Math.PI) / 180; }
-export function insideCircle(px, py, cx, cy, r) {
-  const dx = px - cx, dy = py - cy;
-  return (dx*dx + dy*dy) <= r*r;
+  if (a <= -180) a += 360;
+  return a;
 }
 
-// Global animation speed. 1 = normal, 2 = 2x faster, 0.5 = 2x slower.
-let ANIM_SPEED = 0.25;
-export function setAnimSpeed(s) { ANIM_SPEED = Math.max(0.001, Number(s) || 1); }
-export function getAnimSpeed() { return ANIM_SPEED; }
-export function scaleDur(ms) { return ms / ANIM_SPEED; }
-
-export function wait(ms) {
-  return new Promise(res => setTimeout(res, scaleDur(ms)));
+function lerp(a, b, t) {
+  return a + (b - a) * t;
 }
 
-export async function tween(obj, props, duration=300, easing=easeInOutCubic) {
-  const dur = scaleDur(duration);
-  const start = {};
-  const keys = Object.keys(props);
-  keys.forEach(k => start[k] = obj[k] ?? 0);
-  const startTime = performance.now();
-  return new Promise(resolve => {
-    function step(now) {
-      const t = clamp((now - startTime) / dur, 0, 1);
-      const e = easing(t);
-      keys.forEach(k => { obj[k] = start[k] + (props[k] - start[k]) * e; });
-      if (t < 1) requestAnimationFrame(step);
-      else resolve();
-    }
-    requestAnimationFrame(step);
-  });
+function clamp(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v));
 }
 
-export async function shake(node, magnitude=8, duration=250, freq=30) {
-  const actualDur = scaleDur(duration);
-  const ox = node.x, oy = node.y;
-  const steps = Math.max(1, Math.floor((actualDur/1000) * freq));
-  for (let i=0;i<steps;i++) {
-    node.x = ox + (Math.random()*2-1)*magnitude;
-    node.y = oy + (Math.random()*2-1)*magnitude;
-    await wait(actualDur/steps);
-  }
-  node.x = ox; node.y = oy;
+function ease_out_quad(t) {
+  return 1 - (1 - t) * (1 - t);
 }
 
-export async function knockback(node, direction='up', distance=40, duration=250, steps=18) {
-  const actualDur = scaleDur(duration);
-  const ox = node.x, oy = node.y;
-  let dx=0, dy=0;
-  if (direction === 'up') dy = -distance;
-  else if (direction === 'down') dy = distance;
-  else if (direction === 'left') dx = -distance;
-  else dx = distance;
-  for (let i=1;i<=steps;i++){
-    const t = easeOutQuad(i/steps);
-    node.x = ox + dx * t;
-    node.y = oy + dy * t;
-    await wait(actualDur/steps);
-  }
-  for (let i=1;i<=steps;i++){
-    const t = i/steps;
-    node.x = ox + dx * (1 - t);
-    node.y = oy + dy * (1 - t);
-    await wait(actualDur/steps);
-  }
-  node.x = ox; node.y = oy;
+function sleep(ms) {
+  return new Promise(res => setTimeout(res, ms));
 }
-export function makeCenteredCoord(canvasW, canvasH) {
-  return function toCanvas(x, y) { return [x + canvasW/2, canvasH/2 - y]; };
+
+function Color(tuple) {
+  // tuple is [r,g,b] or (r,g,b), returns CSS rgb string
+  const r = Math.round(tuple[0]);
+  const g = Math.round(tuple[1]);
+  const b = Math.round(tuple[2]);
+  return `rgb(${r},${g},${b})`;
+}
+
+function inside_circle(px, py, cx, cy, r) {
+  const dx = px - cx;
+  const dy = py - cy;
+  return dx * dx + dy * dy <= r * r;
+}
+
+/* Center-origin helpers (engine Nodes already use y-up coordinates) */
+function move_to(obj, x, y) {
+  obj.moveTo(x, y);
+}
+
+function get_xy(obj) {
+  // return world xy
+  return obj.getWorldXY();
+}
+
+function node_of(o) {
+  return o; // in this engine we use Node directly
 }
