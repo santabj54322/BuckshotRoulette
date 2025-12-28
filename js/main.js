@@ -450,7 +450,7 @@ const TUNING = {
   hpbar: { totalDuration: 0.35*SpeedCoeff },
 
   bulletShell: {
-    thrownVel: 12,
+    thrownVel: 10,
     scale: 22,
     iterDelayMS: Math.round(18*SpeedCoeff), // was 18
     depth: 70
@@ -468,7 +468,7 @@ const TUNING = {
     life: 0.32             // was 0.28 (lets particles linger a bit longer)
   },
 
-  clickParticles: { size: [9,9], vel: 1100, drag: 0.86, num: 14, randomness: 0, spread: 360, depth: 10 }
+  clickParticles: { size: [9,9], vel: 1100, drag: 0.86, num: 72, randomness: 0, spread: 360, depth: 10 }
 };
 
 const ASSETS = {
