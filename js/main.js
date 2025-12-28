@@ -450,7 +450,7 @@ const TUNING = {
   hpbar: { totalDuration: 0.35*SpeedCoeff },
 
   bulletShell: {
-    thrownVel: 10,
+    thrownVel: 12,
     scale: 22,
     iterDelayMS: Math.round(18*SpeedCoeff), // was 18
     depth: 70
@@ -468,7 +468,7 @@ const TUNING = {
     life: 0.32             // was 0.28 (lets particles linger a bit longer)
   },
 
-  clickParticles: { size: [9,9], vel: 1100, drag: 0.86, num: 40, randomness: 0, spread: 360, depth: 10 }
+  clickParticles: { size: [9,9], vel: 1100, drag: 0.86, num: 14, randomness: 0, spread: 360, depth: 10 }
 };
 
 const ASSETS = {
@@ -1205,23 +1205,27 @@ async function animate_player_choice_and_shoot(shooter, target) {
   STATE.busy = false;
 }
 
-function get_key_once(valid=['a','b']) {
+function get_click_centered_once() {
   return new Promise(res => {
-    const handler = (e) => {
-      const k = e.key.toLowerCase();
-      if (valid.includes(k)) {
-        window.removeEventListener('keydown', handler);
-        res(k);
-      }
+    const handler = (ev) => {
+      const rect = STATE.canvas.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      const cx = x - CANVAS_W/2;
+      const cy = -(y - CANVAS_H/2);
+      window.removeEventListener('mousedown', handler);
+      res([cx, cy]);
     };
-    window.addEventListener('keydown', handler);
+    window.addEventListener('mousedown', handler, { once: true });
   });
 }
 
 async function player_turn() {
   while (true) {
-    const k = await get_key_once(['a', 'b']);
-    if (k == 'a') {
+    const [x, y] = await get_click_centered_once();
+    const [px, py] = STATE.player_layer.getWorldXY();
+    const [dx, dy] = STATE.dealer_layer.getWorldXY();
+    if (inside_circle(x, y, px, py, 90)) {
       const [fx, fy] = STATE.player_layer.getWorldXY();
       const p = new Particles(
         [255,255,255],
@@ -1241,7 +1245,7 @@ async function player_turn() {
       await p.move();
       await animate_player_choice_and_shoot('player', 'player');
       break;
-    } else if (k==='b') {
+    } else if (inside_circle(x, y, dx, dy, 90)) {
       const [fx, fy] = STATE.dealer_layer.getWorldXY();
       const p = new Particles(
         [255,255,255],
