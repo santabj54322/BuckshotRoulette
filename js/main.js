@@ -156,7 +156,7 @@ class Rectangle extends Node {
     this.h = h;
     this.fill = '#000';
     this.border = '#000';
-    this.borderWidth = 2;
+    this.borderWidth = 5;
   }
   setFillColor(c) {
     this.fill = c;
